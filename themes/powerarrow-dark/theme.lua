@@ -66,6 +66,7 @@ theme.widget_vol_no                             = theme.dir .. "/icons/vol_no.pn
 theme.widget_vol_mute                           = theme.dir .. "/icons/vol_mute.png"
 theme.widget_mail                               = theme.dir .. "/icons/mail.png"
 theme.widget_mail_on                            = theme.dir .. "/icons/mail_on.png"
+-- theme.widger_wather              = theme.dir .. "/icons/"
 theme.tasklist_plain_task_name                  = true
 theme.tasklist_disable_icon                     = true
 theme.useless_gap                               = dpi(0)
@@ -112,28 +113,15 @@ theme.cal = lain.widget.cal({
     }
 })
 
+--[[
 -- Mail IMAP check
 local mailicon = wibox.widget.imagebox(theme.widget_mail)
---[[ commented because it needs to be set before use
+-- commented because it needs to be set before use
 mailicon:buttons(my_table.join(awful.button({ }, 1, function () awful.spawn(mail) end)))
-theme.mail = lain.widget.imap({
-    timeout  = 180,
-    server   = "server",
-    mail     = "mail",
-    password = "keyring get mail",
-    settings = function()
-        if mailcount > 0 then
-            widget:set_markup(markup.font(theme.font, " " .. mailcount .. " "))
-            mailicon:set_image(theme.widget_mail_on)
-        else
-            widget:set_text("")
-            mailicon:set_image(theme.widget_mail)
-        end
-    end
-})
---]]
 
--- MPD
+]]--
+
+--[[ MPD
 local musicplr = awful.util.terminal .. " -title Music -e ncmpcpp"
 local mpdicon = wibox.widget.imagebox(theme.widget_music)
 mpdicon:buttons(my_table.join(
@@ -167,7 +155,7 @@ theme.mpd = lain.widget.mpd({
 
         widget:set_markup(markup.font(theme.font, markup("#EA6F81", artist) .. title))
     end
-})
+}) ]]--
 
 -- MEM
 local memicon = wibox.widget.imagebox(theme.widget_mem)
@@ -181,7 +169,11 @@ local mem = lain.widget.mem({
 local cpuicon = wibox.widget.imagebox(theme.widget_cpu)
 local cpu = lain.widget.cpu({
     settings = function()
-        widget:set_markup(markup.font(theme.font, " " .. cpu_now.usage .. "% "))
+        widget:set_markup(
+        markup.font(
+            theme.font, string.format(" %03d%% ", cpu_now.usage)
+        )
+    )
     end
 })
 
@@ -195,14 +187,14 @@ local temp = lain.widget.temp({
 
 -- / fs
 local fsicon = wibox.widget.imagebox(theme.widget_hdd)
---[[ commented because it needs Gio/Glib >= 2.54
+-- commented because it needs Gio/Glib >= 2.54
 theme.fs = lain.widget.fs({
     notification_preset = { fg = theme.fg_normal, bg = theme.bg_normal, font = "Terminus 10" },
     settings = function()
         widget:set_markup(markup.font(theme.font, " " .. fs_now["/"].percentage .. "% "))
     end
 })
---]]
+
 
 -- Battery
 local baticon = wibox.widget.imagebox(theme.widget_battery)
@@ -228,6 +220,7 @@ local bat = lain.widget.bat({
 
 -- ALSA volume
 local volicon = wibox.widget.imagebox(theme.widget_vol)
+
 theme.volume = lain.widget.alsa({
     settings = function()
         if volume_now.status == "off" then
@@ -243,6 +236,7 @@ theme.volume = lain.widget.alsa({
         widget:set_markup(markup.font(theme.font, " " .. volume_now.level .. "% "))
     end
 })
+
 theme.volume.widget:buttons(awful.util.table.join(
                                awful.button({}, 4, function ()
                                      awful.util.spawn("amixer set Master 1%+")
@@ -259,10 +253,23 @@ local neticon = wibox.widget.imagebox(theme.widget_net)
 local net = lain.widget.net({
     settings = function()
         widget:set_markup(markup.font(theme.font,
-                          markup("#7AC82E", " " .. string.format("%06.1f", net_now.received))
+                          markup("#7AC82E", " " .. string.format("%05.00f", net_now.received))
                           .. " " ..
-                          markup("#46A8C3", " " .. string.format("%06.1f", net_now.sent) .. " ")))
+                          markup("#46A8C3", " " .. string.format("%05.00f", net_now.sent) .. " ")))
     end
+})
+
+-- Weather
+--local weathericon = wibox.widget.imagebox(theme.widget_weather)
+theme.weather = lain.widget.weather({
+     city_id = 3078610, -- placeholder (London)
+     notification_preset = { font = "Terminus 10", fg = theme.fg_normal },
+     weather_na_markup = markup.fontfg(theme.font, "#eca4c4", "N/A "),
+     settings = function()
+         descr = weather_now["weather"][1]["description"]:lower()
+         units = math.floor(weather_now["main"]["temp"])
+         widget:set_markup(markup.fontfg(theme.font, "#eca4c4", descr .. " @ " .. units .. "°C "))
+     end
 })
 
 -- Separators
@@ -270,9 +277,12 @@ local spr     = wibox.widget.textbox(' ')
 local arrl_dl = separators.arrow_left(theme.bg_focus, "alpha")
 local arrl_ld = separators.arrow_left("alpha", theme.bg_focus)
 
+local arrr_dl = separators.arrow_right(theme.bg_focus, "alpha")
+local arrr_ld = separators.arrow_right("alpha", theme.bg_focus)
+
 function theme.at_screen_connect(s)
     -- Quake application
-    s.quake = lain.util.quake({ app = awful.util.terminal })
+    --s.quake = lain.util.quake({ app = awful.util.terminal })
 
     -- If wallpaper is a function, call it with the screen
     local wallpaper = theme.wallpaper
@@ -302,7 +312,7 @@ function theme.at_screen_connect(s)
     s.mytasklist = awful.widget.tasklist(s, awful.widget.tasklist.filter.currenttags, awful.util.tasklist_buttons)
 
     -- Create the wibox
-    s.mywibox = awful.wibar({ position = "top", screen = s, height = dpi(18), bg = theme.bg_normal, fg = theme.fg_normal })
+    s.mywibox = awful.wibar({ position = "bottom", screen = s, height = dpi(20), bg = theme.bg_normal, fg = theme.fg_normal })
 
     -- Add widgets to the wibox
     s.mywibox:setup {
@@ -321,14 +331,10 @@ function theme.at_screen_connect(s)
             keyboardlayout,
             spr,
             arrl_ld,
-            wibox.container.background(mpdicon, theme.bg_focus),
-            wibox.container.background(theme.mpd.widget, theme.bg_focus),
-            arrl_dl,
-            volicon,
-            theme.volume.widget,
-            arrl_ld,
-            wibox.container.background(mailicon, theme.bg_focus),
-            --wibox.container.background(theme.mail.widget, theme.bg_focus),
+            wibox.container.background(volicon, theme.bg_focus),
+            wibox.container.background(theme.volume.widget, theme.bg_focus),
+            --wibox.container.background(mailicon, theme.bg_focus),
+            --wibox.container.background(theme.mail.widget, theme.bg_focus), --X
             arrl_dl,
             memicon,
             mem.widget,
@@ -340,7 +346,7 @@ function theme.at_screen_connect(s)
             temp.widget,
             arrl_ld,
             wibox.container.background(fsicon, theme.bg_focus),
-            --wibox.container.background(theme.fs.widget, theme.bg_focus),
+            wibox.container.background(theme.fs.widget, theme.bg_focus), --X
             arrl_dl,
             baticon,
             bat.widget,
@@ -348,6 +354,8 @@ function theme.at_screen_connect(s)
             wibox.container.background(neticon, theme.bg_focus),
             wibox.container.background(net.widget, theme.bg_focus),
             arrl_dl,
+            theme.weather,
+            spr,
             clock,
             spr,
             arrl_ld,
